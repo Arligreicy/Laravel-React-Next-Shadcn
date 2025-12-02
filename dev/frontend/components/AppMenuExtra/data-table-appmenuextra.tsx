@@ -16,6 +16,30 @@ import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, Dr
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/components/ui/use-toast";
+
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction
+} from "@/components/ui/alert-dialog";
+
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export const schema = z.object({
   id: z.number(),
@@ -27,43 +51,10 @@ export const schema = z.object({
   reviewer: z.string(),
 });
 
+
 function DragHandle({ id }: { id: number }) {
   const { attributes, listeners } = useSortable({ id });
   return <Button {...attributes} {...listeners} variant="ghost" size="icon">≡</Button>;
-}
-
-function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
-  const isMobile = useIsMobile();
-
-  return (
-    <Drawer direction={isMobile ? "bottom" : "right"}>
-      <DrawerTrigger asChild>
-        <Button variant="link" className="text-foreground w-fit px-0 text-left">{item.header}</Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader className="gap-1">
-          <DrawerTitle>{item.header}</DrawerTitle>
-          <DrawerDescription>Detalhes do menu extra</DrawerDescription>
-        </DrawerHeader>
-        <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
-          <form className="flex flex-col gap-4">
-            {["header", "type", "status", "target", "limit", "reviewer"].map((key) => (
-              <div key={key} className="flex flex-col gap-1">
-                <Label htmlFor={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</Label>
-                <Input id={key} defaultValue={item[key as keyof typeof item]} />
-              </div>
-            ))}
-          </form>
-        </div>
-        <DrawerFooter>
-          <Button>Submit</Button>
-          <DrawerClose asChild>
-            <Button variant="outline">Done</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  );
 }
 
 function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
@@ -78,6 +69,9 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
 }
 
 export default function DataTableAppMenuExtra() {
+
+    const { toast } = useToast();
+
     // --- state/hooks fundamentais (sempre declarados) ---
     const [data, setData] = React.useState<z.infer<typeof schema>[]>([]);
     const [loading, setLoading] = React.useState(true);
@@ -87,18 +81,73 @@ export default function DataTableAppMenuExtra() {
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [sorting, setSorting] = React.useState<SortingState>([]);
-    const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 50 });
 
-    // sensores para DnD (memoizados implicitamente por hooks)
+     // --- estados para edição ---
+    const [editingItem, setEditingItem] = React.useState<z.infer<typeof schema> | null>(null);
+    const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
+
+     // --- DnD sensores ---
     const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor), useSensor(KeyboardSensor));
-
-    // ids memoizados — OK
     const dataIds = React.useMemo<UniqueIdentifier[]>(() => data.map((item) => item.id), [data]);
 
-    // --- columns MEMOIZADAS (crucial) ---
+     // --- columns MEMOIZADAS (crucial) ---
     const columns = React.useMemo<ColumnDef<any>[]>(() => [
 
+    {
+      id: "actions",
+      header: "Ações",
+      cell: ({ row }) => (
+        <div className="flex gap-2">
 
+          {/* BOTÃO EDITAR */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-[11px]"
+            onClick={() => handleEdit(row.original)}
+          >
+            Editar
+          </Button>
+
+          {/* DIÁLOGO DE CONFIRMAÇÃO DE EXCLUSÃO */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                size="sm" 
+                variant="destructive"
+                className="h-6 px-2 text-[11px]"
+                >
+                Excluir
+              </Button>
+            </AlertDialogTrigger>
+
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Confirmar Exclusão
+                </AlertDialogTitle>
+
+                <AlertDialogDescription>
+                  Tem certeza de que deseja excluir o menu <b>{row.original.descricao}</b>?  
+                  Essa ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+
+                <AlertDialogAction
+                  onClick={() => handleDelete(row.original.id)}
+                >
+                  Confirmar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      ),
+    },
     { accessorKey: "id", header: "ID" },
     { accessorKey: "titulo", header: "Título" },
     { accessorKey: "icone", header: "Ícone" },
@@ -124,13 +173,19 @@ export default function DataTableAppMenuExtra() {
 
     {
       accessorKey: "visivel",
-      header: "Visível",
-      cell: ({ row }) => (
-        <Badge variant="outline">
-          {row.original.visivel === "S" ? "Sim" : "Não"}
+    header: "Visível",
+    cell: ({ row }) => {
+      const isSim = row.original.visivel === "S";
+      return (
+        <Badge
+          variant="outline"
+          className={isSim ? "border-green-500 text-green-600" : "border-red-500 text-red-600"}
+        >
+          {isSim ? "Sim" : "Não"}
         </Badge>
-      ),
+      );
     },
+  },
 
     { accessorKey: "target", header: "Target" },
     { accessorKey: "usuariocad", header: "Usuário Cad." },
@@ -207,17 +262,11 @@ export default function DataTableAppMenuExtra() {
     return () => { mounted = false; };
   }, []);
 
-
-  // --- Condicionais de render (só depois que todos hooks foram definidos) ---
-  if (loading) return <div>Carregando menus extras...</div>;
-  if (error) return <div className="text-red-500">Erro: {error}</div>;
-
-
-  // --- drag handling ---
+   // --- drag & drop ---
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (active && over && active.id !== over.id) {
-      setData((current) => {
+      setData(current => {
         const oldIndex = dataIds.indexOf(active.id);
         const newIndex = dataIds.indexOf(over.id);
         return arrayMove(current, oldIndex, newIndex);
@@ -225,7 +274,83 @@ export default function DataTableAppMenuExtra() {
     }
   }
 
+  // --- funções de edição e exclusão ---
+  function handleEdit(item: z.infer<typeof schema>) {
+    setEditingItem(item);
+    setIsDrawerOpen(true);
+  }
+
+  async function handleDelete(id: number) {
+    try {
+      const res = await fetch(`http://localhost:8000/api/appmenuextra/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Erro ao excluir");
+
+      setData(prev => prev.filter(item => item.id !== id));
+
+      toast({
+        title: "Menu excluído!",
+        description: "O registro foi removido com sucesso."
+      });
+
+    } catch (err: any) {
+      toast({
+        title: "Erro ao excluir",
+        description: err.message || "Ocorreu um erro inesperado."
+      });
+    }
+  }
+
+
+  async function handleSubmitEdit() {
+    if (!editingItem) return;
+
+    try {
+      const res = await fetch(
+        `http://localhost:8000/api/appmenuextra/${editingItem.id}`,
+        {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editingItem),
+        }
+      );
+
+      if (!res.ok) throw new Error("Erro ao atualizar menu");
+
+      const updated = await res.json();
+
+      setData(prev =>
+        prev.map(item => item.id === updated.id ? updated : item)
+      );
+
+      setIsDrawerOpen(false);
+      setEditingItem(null);
+
+      // --- TOAST BONITÃO ---
+      toast({
+        title: "Menu atualizado!",
+        description: `O menu "${updated.descricao}" foi salvo com sucesso.`,
+      });
+
+    } catch (err: any) {
+      toast({
+        title: "Erro ao atualizar",
+        description: err.message || "Erro desconhecido",
+      });
+    }
+  }
+
+    // --- Condicionais de render (só depois que todos hooks foram definidos) ---
+  if (loading) return <div>Carregando menus extras...</div>;
+  if (error) return <div className="text-red-500">Erro: {error}</div>;
+
   return (
+    <div className="flex flex-col h-full">
+
     <DndContext collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis]} sensors={sensors} onDragEnd={handleDragEnd}>
       <Table>
         <TableHeader>
@@ -252,5 +377,53 @@ export default function DataTableAppMenuExtra() {
         </TableBody>
       </Table>
     </DndContext>
+   
+      <footer className="flex justify-between mt-2">
+        <Button
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Anterior
+        </Button>
+        <Button
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          Próximo
+        </Button>
+      </footer>
+
+      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <DrawerContent className="sm:max-w-[450px]">
+          <DrawerHeader>
+            <DrawerTitle>Editar Menu</DrawerTitle>
+          </DrawerHeader>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <form className="col-span-2 grid gap-2">
+              {["Titulo:", "Url:", "Visível:", "Target:", "Ícone:", "Cor:", "Tipo Usuário:", "Nível de Ensino:"].map(key => (
+                <div key={key} className="flex flex-col gap-1">
+                  <Label htmlFor={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</Label>
+                  <Input
+                    id={key}
+                    value={editingItem?.[key as keyof typeof editingItem] || ""}
+                    onChange={e => setEditingItem(prev => prev ? { ...prev, [key]: e.target.value } : prev)}
+                  />
+                </div>
+              ))}
+            </form>
+          </div>
+          <DrawerFooter>
+            <Button onClick={handleSubmitEdit}>Salvar</Button>
+            <DrawerClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+    </div>
+
+    
   );
+  
 }

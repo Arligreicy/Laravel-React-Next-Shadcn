@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useUserContext } from "@/providers/UserProvider";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogClose,
@@ -24,6 +26,16 @@ import {
 } from "@/components/ui/select";
 
 export function NovoMenuExtra({ onSaved }: { onSaved?: () => void }) {
+  // Toast para mostrar mensagens de sucesso/erro
+  const { toast } = useToast();
+
+  // Pegando o usuário logado do contexto
+  const { user } = useUserContext();
+
+  // Estado do dialog (aberto ou fechado)
+  const [open, setOpen] = useState(false);
+
+  // Estado do formulário
   const [form, setForm] = useState({
     TITULO: "",
     URL: "",
@@ -35,41 +47,73 @@ export function NovoMenuExtra({ onSaved }: { onSaved?: () => void }) {
     NIVELENSINO: "",
   });
 
+  // Atualiza o estado do formulário conforme o usuário digita
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
+  // Função para enviar o formulário
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     try {
+     
       const response = await fetch("http://localhost:8000/api/appmenuextra", {
         method: "POST",
-        credentials: "include",
+        credentials: "include", // envia cookies JWT
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
         },
         body: JSON.stringify({
           ...form,
-          USUARIOCAD: "ARLI",
-          DATACAD: new Date().toISOString().slice(0, 19).replace("T", " "),
+          USUARIOCAD: String(user?.login), // pega o login do usuário como string
+          DATACAD: new Date().toISOString().slice(0, 19).replace("T", " "), // formato Y-m-d H:i:s
         }),
       });
 
+      const data = await response.json();
+
+      // Se a requisição falhar, mostra erro
       if (!response.ok) {
-        throw new Error("Erro ao salvar o menu extra");
+        toast({
+          title: "Erro!",
+          description: data.message || "Falha ao salvar o menu extra.",
+        });
+        return;
       }
 
+      // Se der certo, mostra toast de sucesso
+      toast({
+        title: "Sucesso!",
+        description: data.message || "Menu salvo com sucesso!",
+      });
+
+      // Fecha o dialog
+      setOpen(false);
+
+      window.location.reload();
+
+      // Callback opcional para atualizar a lista de menus extras
       if (onSaved) onSaved();
     } catch (error) {
       console.error("Erro:", error);
+      toast({
+        title: "Erro inesperado",
+        description: "Algo deu errado na requisição.",
+      });
     }
   }
 
   return (
-    <Dialog>
+    // Dialog controlado pelo estado "open"
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Novo Menu</Button>
+        <Button 
+          variant="outline">
+        
+          Novo Menu Extra
+          </Button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[450px]">
@@ -199,7 +243,7 @@ export function NovoMenuExtra({ onSaved }: { onSaved?: () => void }) {
                   <SelectValue placeholder="Selecione o nível" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">Indefinido</SelectItem>
+                  <SelectItem value="0">Indefinido</SelectItem> 
                   <SelectItem value="1">Colégio</SelectItem>
                   <SelectItem value="2">Graduação</SelectItem>
                   <SelectItem value="3">Pós-Graduação</SelectItem>
@@ -210,10 +254,13 @@ export function NovoMenuExtra({ onSaved }: { onSaved?: () => void }) {
 
           </div>
 
+          {/* FOOTER */}
           <DialogFooter className="mt-5">
+            {/* Cancelar fecha o dialog */}
             <DialogClose asChild>
               <Button variant="outline">Cancelar</Button>
             </DialogClose>
+            {/* Salvar não fecha automaticamente, será feito pelo setOpen(false) após sucesso */}
             <Button type="submit">Salvar</Button>
           </DialogFooter>
         </form>

@@ -4,8 +4,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldGroup } from "@/components/ui/field";
+import { useToast } from "@/components/ui/use-toast";
 
 export function LoginForm() {
+
+  const { toast } = useToast();
+  
   const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
@@ -17,7 +21,7 @@ export function LoginForm() {
     try {
       const response = await fetch("http://localhost:8000/api/users/login", {
         method: "POST",
-        credentials: "include", // 🔥 IMPORTANTE PARA RECEBER COOKIE HTTP-ONLY
+        credentials: "include", // cookie http-only
         headers: {
           "Content-Type": "application/json",
         },
@@ -31,14 +35,33 @@ export function LoginForm() {
 
       if (!response.ok) {
         setErro(data.message || "Erro ao fazer login");
+
+        toast({
+          title: "Erro no login",
+          description: data.message || "Usuário ou senha incorretos.",
+        });
+
         return;
       }
 
-      // Login OK → backend enviará cookie automaticamente
-      window.location.href = "/dashboard"; // redireciona
+      toast({
+        title: "Login realizado!",
+        description: "Seja bem vindo de volta.",
+      });
+
+      // redireciona
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 800);
+
     } catch (error) {
       console.error(error);
       setErro("Erro de conexão com o servidor");
+
+      toast({
+        title: "Falha na conexão",
+        description: "Não foi possível conectar ao servidor.",
+      });
     }
   }
 

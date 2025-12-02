@@ -5,11 +5,13 @@ import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable } from "@/components/data-table"
 import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
+import { useUserContext } from "@/providers/UserProvider";
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import data from "./data.json"
+import { NavUser } from "@/components/nav-user";
 export default function Page() {
   return (
     <SidebarProvider
@@ -29,6 +31,7 @@ export default function Page() {
               <SectionCards />
               <div className="px-4 lg:px-6">
                 <ChartAreaInteractive />
+                <NavUser/>
               </div>
               <DataTable data={data} />
             </div>
