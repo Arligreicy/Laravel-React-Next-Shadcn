@@ -24,6 +24,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { log } from "console";
 
 export function NovoMenuExtra({ onSaved }: { onSaved?: () => void }) {
   // Toast para mostrar mensagens de sucesso/erro
@@ -73,10 +74,11 @@ export function NovoMenuExtra({ onSaved }: { onSaved?: () => void }) {
       });
 
       const data = await response.json();
-
+     
       // Se a requisição falhar, mostra erro
       if (!response.ok) {
         toast({
+          variant: "error",
           title: "Erro!",
           description: data.message || "Falha ao salvar o menu extra.",
         });
@@ -85,6 +87,7 @@ export function NovoMenuExtra({ onSaved }: { onSaved?: () => void }) {
 
       // Se der certo, mostra toast de sucesso
       toast({
+        variant: "success",
         title: "Sucesso!",
         description: data.message || "Menu salvo com sucesso!",
       });
@@ -94,11 +97,12 @@ export function NovoMenuExtra({ onSaved }: { onSaved?: () => void }) {
 
       window.location.reload();
 
-      // Callback opcional para atualizar a lista de menus extras
+     // Callback opcional para atualizar a lista de menus extras
       if (onSaved) onSaved();
     } catch (error) {
       console.error("Erro:", error);
       toast({
+        variant: "error",
         title: "Erro inesperado",
         description: "Algo deu errado na requisição.",
       });
@@ -110,7 +114,8 @@ export function NovoMenuExtra({ onSaved }: { onSaved?: () => void }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button 
-          variant="outline">
+          variant="outline"
+          className="ml-2 bg-primary text-white">
         
           Novo Menu Extra
           </Button>
@@ -187,12 +192,25 @@ export function NovoMenuExtra({ onSaved }: { onSaved?: () => void }) {
             {/* ICONE */}
             <div className="grid gap-2">
               <Label htmlFor="ICONE">Ícone *</Label>
+
               <Input
                 id="ICONE"
                 name="ICONE"
                 value={form.ICONE}
                 onChange={handleChange}
               />
+
+              <p className="text-xs text-muted-foreground">
+                Consulte os ícones disponíveis em{" "}
+                <a
+                  href="https://ionic.io/ionicons"
+                  className="underline text-blue-600"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Ionic Icons
+                </a>
+              </p>
             </div>
 
             {/* COR */}
@@ -206,10 +224,12 @@ export function NovoMenuExtra({ onSaved }: { onSaved?: () => void }) {
                   <SelectValue placeholder="Selecione a cor" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="azul">Azul</SelectItem>
-                  <SelectItem value="verde">Verde</SelectItem>
-                  <SelectItem value="vermelho">Vermelho</SelectItem>
-                  <SelectItem value="amarelo">Amarelo</SelectItem>
+                  <SelectItem value="primary">Azul</SelectItem>
+                  <SelectItem value="light">Cinza Claro</SelectItem>
+                  <SelectItem value="danger">Vermelho</SelectItem>
+                  <SelectItem value="warning">Amarelo</SelectItem>
+                  <SelectItem value="success">Verde</SelectItem>
+                  <SelectItem value="tertiary">Roxo Claro</SelectItem>
                 </SelectContent>
               </Select>
             </div>

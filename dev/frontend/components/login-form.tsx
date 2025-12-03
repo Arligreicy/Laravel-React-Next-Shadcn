@@ -33,6 +33,8 @@ export function LoginForm() {
 
       const data = await response.json();
 
+      console.log(data);
+    
       if (!response.ok) {
         setErro(data.message || "Erro ao fazer login");
 
@@ -49,10 +51,10 @@ export function LoginForm() {
         description: "Seja bem vindo de volta.",
       });
 
-      // redireciona
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 800);
+      // // redireciona
+      // setTimeout(() => {
+      //   window.location.href = "/dashboard";
+      // }, 800);
 
     } catch (error) {
       console.error(error);

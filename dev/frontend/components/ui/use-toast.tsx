@@ -12,6 +12,7 @@ import {
 type ToastProps = {
   title?: string
   description?: string
+  variant?: "default" | "success" | "error" | "warning"
 }
 
 type ToastContextType = {
@@ -40,7 +41,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         <ToastViewport />
 
         {toasts.map((t, i) => (
-          <Toast key={i} duration={3000}>
+         <Toast
+            key={i}
+            duration={3000}
+            className={
+              t.variant === "success"
+                ? "border-green-600 text-green-700 dark:text-green-300"
+                : t.variant === "error"
+                ? "border-red-600 text-red-700 dark:text-red-300"
+                : t.variant === "warning"
+                ? "border-yellow-600 text-yellow-700 dark:text-yellow-300"
+                : ""
+            }
+          >
             {t.title && <ToastTitle>{t.title}</ToastTitle>}
             {t.description && (
               <ToastDescription>{t.description}</ToastDescription>

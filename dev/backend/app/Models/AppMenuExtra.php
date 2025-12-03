@@ -27,4 +27,18 @@ class AppMenuExtra extends Model
         'USUARIOALT',
         'DATAALT'
     ];
+
+     /**
+     * Normaliza todas as chaves recebidas para MAIÚSCULO.
+     */
+    public function fill(array $attributes)
+    {
+        $normalized = [];
+
+        foreach ($attributes as $key => $value) {
+            $normalized[strtoupper($key)] = $value;
+        }
+
+        return parent::fill($normalized);
+    }
 }
