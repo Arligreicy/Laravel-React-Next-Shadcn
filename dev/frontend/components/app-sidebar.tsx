@@ -38,8 +38,8 @@ import {
 const data = {
  
   navMain: [
-    { title: "App Menu Extra", url: "/appmenuextra", icon: IconDashboard },
-    { title: "Lifecycle", url: "#", icon: IconListDetails },
+    { title: "Usuários", url: "/usuarios", icon: IconUsers },
+    { title: "App Menu Extra", url: "/appmenuextra", icon: IconCamera },
     { title: "Analytics", url: "#", icon: IconChartBar },
     { title: "Projects", url: "#", icon: IconFolder },
     { title: "Team", url: "#", icon: IconUsers },

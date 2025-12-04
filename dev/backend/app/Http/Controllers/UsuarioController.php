@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Models\Gusuario;
@@ -12,7 +10,7 @@ use App\Models\Gusuario;
 class UsuarioController extends Controller
 {
     
-    public function index() // → lista todos os usuários.
+    public function index() 
     {
         $usuarios = Gusuario::all();
         return response()->json($usuarios);
@@ -117,10 +115,22 @@ class UsuarioController extends Controller
             'EMAIL' => 'required|string|email|max:255|unique:GUSUARIOS,EMAIL', //→ garante que o e-mail não se repita na tabela GUSUARIO.
             'LOGIN' => 'required|string|max:50|unique:GUSUARIOS,LOGIN',
             'SENHA' => 'required|string|min:6',
+            'IDPERFIL' => 'required|integer',
+            'IDDEPART' => 'required|integer',
             // Adicione outras validações conforme necessário
         ]);
 
-        // $validated['SENHA'] = bcrypt($validated['SENHA']); //→ opcional: hash da senha para segurança.
+        // salva senha pura no legado (mantém compatibilidade)
+        $validated['SENHA'] = $validated['SENHA'];
+
+        // CRIPTOGRAFA a senha nova
+        $validated['SENHAHASH'] = Hash::make($validated['SENHA']);
+
+        // CAMPOS PADRÃO
+        $validated['ATIVO'] = 'S';
+        $validated['USUARIOCAD'] = auth()->id() ?? null;
+        $validated['DATACAD'] = now();
+
         $usuario = Gusuario::create($validated); //→ cria o registro (precisa que o model tenha o protected $fillable configurado).
         return response()->json($usuario, 201); //→ responde em formato JSON e com status 201 (Created).
 
@@ -137,14 +147,24 @@ class UsuarioController extends Controller
                 'EMAIL' => 'sometimes|required|string|email|max:255|unique:GUSUARIOS,EMAIL,'.$id.',IDUSUARIO', //→ diz: “se for o mesmo ID, pode manter o mesmo e-mail” (ou seja, evita erro de duplicidade quando atualiza).
                 'LOGIN' => 'sometimes|required|string|max:50|unique:GUSUARIOS,LOGIN,'.$id.',IDUSUARIO',
                 'SENHA' => 'sometimes|required|string|min:6',
+                'IDPERFIL' => 'sometimes|required|integer',
+                'IDDEPART' => 'sometimes|required|integer',
                 // Adicione outras validações conforme necessário
             ]);
 
-        // if (isset($validated['SENHA'])) {
-        //     $validated['SENHA'] = bcrypt($validated['SENHA']);
-        // }
+        if (isset($validated['SENHA'])) {
 
-        $usuario->update($validated); //→ atualiza apenas os campos enviados.
+            // mantém versão pura (legado)
+            $validated['SENHA'] = $validated['SENHA'];
+
+            // atualiza hash correto
+            $validated['SENHAHASH'] = Hash::make($validated['SENHA']);
+        }
+
+        $validated['USUARIOALT'] = auth()->id() ?? null;
+        $validated['DATAALT'] = now();
+
+        $usuario->fill($validated)->save(); 
         return response()->json($usuario);
 
     }// ATUALIZAR UM USUÁRIO

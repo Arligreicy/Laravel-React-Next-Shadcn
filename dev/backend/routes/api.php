@@ -14,6 +14,9 @@ Route::middleware('jwt')->group(function () {
 
     Route::get('users', [UsuarioController::class, 'index']);
     Route::get('users/{id}', [UsuarioController::class, 'show']);
+    Route::post('users', [UsuarioController::class, 'store']);
+    Route::put('users/{id}', [UsuarioController::class, 'update']);
+    Route::delete('users/{id}', [UsuarioController::class, 'destroy']);
 
     Route::get('appmenuextra', [AppMenuExtraController::class, 'index']);
     Route::get('appmenuextra/{id}', [AppMenuExtraController::class, 'show']);

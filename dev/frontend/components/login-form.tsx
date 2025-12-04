@@ -39,6 +39,7 @@ export function LoginForm() {
         setErro(data.message || "Erro ao fazer login");
 
         toast({
+          
           title: "Erro no login",
           description: data.message || "Usuário ou senha incorretos.",
         });
@@ -47,20 +48,22 @@ export function LoginForm() {
       }
 
       toast({
+        variant: "success",
         title: "Login realizado!",
         description: "Seja bem vindo de volta.",
       });
 
-      // // redireciona
-      // setTimeout(() => {
-      //   window.location.href = "/dashboard";
-      // }, 800);
+      // redireciona
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 800);
 
     } catch (error) {
       console.error(error);
       setErro("Erro de conexão com o servidor");
 
       toast({
+        
         title: "Falha na conexão",
         description: "Não foi possível conectar ao servidor.",
       });
