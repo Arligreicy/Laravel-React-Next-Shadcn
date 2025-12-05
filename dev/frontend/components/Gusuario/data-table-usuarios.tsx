@@ -37,18 +37,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import SelectField from "@/components/Gusuarios/selectfield";
-import { NovoUsuario } from "@/components/Gusuarios/novo-usuario";
+import SelectField from "@/components/Gusuario/selectfield";
+import { NovoUsuario } from "@/components/Gusuario/novo-usuario";
 
 export const schema = z.object({
   id: z.number(),
   ativo: z.string().min(1),
   login: z.string().min(1),
   nome: z.string().min(1),  
+  senha: z.string().optional(),
   idperfil: z.number().optional(),
   iddepart: z.number().optional(),
   email: z.string(),
-  ultimoacesso: z.string().optional(),
+  usuarioalt: z.string().optional(),
   dataalt: z.string().optional(),
 });
 
@@ -150,7 +151,7 @@ export default function DataTableGusuarios() {
         </div>
       ),
     },
-    { accessorKey: "id", header: "Cód:" },
+    { accessorKey: "login", header: "Usuário:" },
     {
       accessorKey: "ativo",
       header: "Ativo:",
@@ -205,6 +206,7 @@ export default function DataTableGusuarios() {
   });
 
   React.useEffect(() => {
+
     let mounted = true;
 
     async function fetchData() {
@@ -221,18 +223,20 @@ export default function DataTableGusuarios() {
         }
 
         const json = await response.json();
-
+        
         if (!mounted) return;
 
         setData(json.map((item: any) => ({
 
           id: item.IDUSUARIO,
           ativo: item.ATIVO,
-          login: item.LOGIN,
-          nome: item.NOME,
+          nome: item.NOME,           
+          email: item.EMAIL, 
+          login: item.LOGIN,  
+          senha: item.SENHA,
+          usuarioalt: item.USUARIOALT,           
           idperfil: item.IDPERFIL ?? '',
-          iddepart: item.IDDEPART ?? '',
-          email: item.EMAIL,
+          iddepart: item.IDDEPART ?? '',          
           ultimoacesso: item.DTULTIMOACESSO ?? '',
           dataalt: item.DATAALT ?? '',
 
@@ -264,7 +268,7 @@ export default function DataTableGusuarios() {
   }
 
   // --- funções de edição e exclusão ---
-  function handleEdit(item: z.infer<typeof schema>) {
+ function handleEdit(item: z.infer<typeof schema>) {
     setEditingItem(item);
     setIsEditDialogOpen(true); 
     
@@ -296,9 +300,7 @@ export default function DataTableGusuarios() {
     }
   }
   async function handleSubmitEdit() {
-
-    console.log("dados para salvar:", editingItem);
-
+  
     if (!editingItem) return;
     
     try {
@@ -315,14 +317,14 @@ export default function DataTableGusuarios() {
       if (!res.ok) throw new Error("Erro ao atualizar menu");
 
       const updatedbanco = await res.json();
-      console.log("dados atualizados do banco:", updatedbanco);
-      
+     
       const updated = {
         id: updatedbanco.IDUSUARIO,
         ativo: updatedbanco.ATIVO,
         login: updatedbanco.LOGIN,
         nome: updatedbanco.NOME,
-        departamento: updatedbanco.IDDEPART ?? '',
+        senha: updatedbanco.SENHA,
+        iddepart: updatedbanco.IDDEPART ?? '',
         email: updatedbanco.EMAIL,
         ultimoacesso: updatedbanco.DTULTIMOACESSO ?? '',
         dataalt: updatedbanco.DATAALT ?? '',
@@ -493,6 +495,19 @@ export default function DataTableGusuarios() {
                         { value: "S", label: "Sim" },
                         { value: "N", label: "Não" }
                         ]}
+                    />
+                    </div>
+
+                    {/*SENHA */}
+                    <div className="flex flex-col gap-1">
+                    <Label htmlFor="senha">Senha (Preencha para alterar)</Label>
+                    <Input
+                        id="senha"
+                        type="password"
+                        value={editingItem?.senha?? ""}
+                        onChange={(e) =>
+                        setEditingItem(prev => prev ? { ...prev, senha: e.target.value } : prev)
+                        }
                     />
                     </div>
                    

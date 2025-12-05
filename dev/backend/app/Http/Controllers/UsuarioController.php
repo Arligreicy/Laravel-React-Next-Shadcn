@@ -138,36 +138,39 @@ class UsuarioController extends Controller
 
     public function update(Request $request, $id)
     {
-        $usuario = Gusuario::find($id); //→ procura o usuário pelo IDUSUARIO.
+        $usuario = Gusuario::find($id);
+
         if (!$usuario) {
             return response()->json(['message' => 'Usuário não encontrado'], 404);
         }
-            $validated = $request->validate([
-                'NOME' => 'sometimes|required|string|max:255', //→ significa: “se o campo vier no request, ele é obrigatório”.
-                'EMAIL' => 'sometimes|required|string|email|max:255|unique:GUSUARIOS,EMAIL,'.$id.',IDUSUARIO', //→ diz: “se for o mesmo ID, pode manter o mesmo e-mail” (ou seja, evita erro de duplicidade quando atualiza).
-                'LOGIN' => 'sometimes|required|string|max:50|unique:GUSUARIOS,LOGIN,'.$id.',IDUSUARIO',
-                'SENHA' => 'sometimes|required|string|min:6',
-                'IDPERFIL' => 'sometimes|required|integer',
-                'IDDEPART' => 'sometimes|required|integer',
-                // Adicione outras validações conforme necessário
-            ]);
 
-        if (isset($validated['SENHA'])) {
+       
+        $data = [];
+        foreach ($request->all() as $key => $value) {
+            $data[strtoupper($key)] = $value;
+        }
+       
+        $validated = validator($data, [
+            'ATIVO' => 'sometimes|string|in:S,N',
+            'NOME' => 'sometimes|required|string|max:255',
+            'EMAIL' => 'sometimes|required|string|email|max:255|unique:GUSUARIOS,EMAIL,' . $id . ',IDUSUARIO',
+            'LOGIN' => 'sometimes|required|string|max:50|unique:GUSUARIOS,LOGIN,' . $id . ',IDUSUARIO',
+            'SENHA' => 'sometimes|nullable|string|min:6',
+            'IDPERFIL' => 'sometimes|nullable|integer',
+            'IDDEPART' => 'sometimes|nullable|integer',
+        ])->validate();
 
-            // mantém versão pura (legado)
-            $validated['SENHA'] = $validated['SENHA'];
-
-            // atualiza hash correto
+        if (!empty($validated['SENHA'])) {
             $validated['SENHAHASH'] = Hash::make($validated['SENHA']);
         }
 
         $validated['USUARIOALT'] = auth()->id() ?? null;
         $validated['DATAALT'] = now();
 
-        $usuario->fill($validated)->save(); 
-        return response()->json($usuario);
+        $usuario->fill($validated)->save();
 
-    }// ATUALIZAR UM USUÁRIO
+        return response()->json($usuario);
+    }
 
     public function destroy($id)
     {

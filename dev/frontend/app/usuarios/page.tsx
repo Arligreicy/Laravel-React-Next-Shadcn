@@ -7,7 +7,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 // Dynamic import do componente cliente, SSR desativado
 const DataTableGusuarios = dynamic(
-  () => import("@/components/Gusuarios/data-table-usuarios"),
+  () => import("@/components/Gusuario/data-table-usuarios"),
   { ssr: false }
 );
 
